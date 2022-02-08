@@ -53,6 +53,7 @@ FROM stmt_hr_pct
 WHERE iJoinStmt = 1
 ORDER BY lioPct DESC
 LIMIT 10;
+    
 aggregated_ts      |            querytxt            | ijoinstmt | fullscan |         liopct
 -------------------------+--------------------------------+-----------+----------+-------------------------
   2022-02-07 19:00:00+00 | SELECT c1, c2, c3 FROM scandir |         1 |        0 | 0.94224811180627227600
