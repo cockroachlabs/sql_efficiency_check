@@ -1,2 +1,5 @@
-# sql_efficiency_check
-Check the efficiency of SQL statements based on CRDB best practices
+# SQL efficiency checker 
+
+This tool uses the `crdb_internal.statement_statistics` to analyze the various 
+sql statements.  Efficiency is analyzed to determine if the statements could
+be better optmized.
