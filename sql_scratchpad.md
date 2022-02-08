@@ -48,24 +48,25 @@ WITH stmt_hr_calc AS (
         lioPerStmt/(sum(lioPerStmt) OVER (PARTITION BY aggregated_ts)) as lioPct
     FROM stmt_hr_stats
 )
-SELECT aggregated_ts, queryTxt, iJoinStmt, lioPct
+SELECT aggregated_ts, queryTxt, iJoinStmt, fullScan, lioPct
 FROM stmt_hr_pct
 WHERE iJoinStmt = 1
 ORDER BY lioPct DESC
 LIMIT 10;
-
-      aggregated_ts      |            querytxt            | ijoinstmt |         liopct
--------------------------+--------------------------------+-----------+-------------------------
-  2022-02-07 19:00:00+00 | SELECT c1, c2, c3 FROM scandir |         1 | 0.94224811180627227600
-  2022-02-08 18:00:00+00 | SELECT c1, c2, c3 FROM scandir |         1 | 0.88628190463941350055
-  2022-02-08 17:00:00+00 | SELECT c1, c2, c3 FROM scandir |         1 | 0.50375937286121324252
-  2022-02-01 21:00:00+00 | SELECT big_id, c1 FROM scandir |         1 | 0.49955901362542753413
-  2022-02-01 21:00:00+00 | SELECT big_id, c1 FROM scandir |         1 | 0.49955491203221899122
-  2022-02-01 01:00:00+00 | SELECT big_id, c1 FROM scandir |         1 | 0.49377680659160290481
-  2022-02-01 01:00:00+00 | SELECT big_id, c1 FROM scandir |         1 | 0.49375504225612358826
-  2022-01-31 23:00:00+00 | SELECT big_id, c1 FROM scandir |         1 | 0.49361297910555658495
-  2022-01-31 23:00:00+00 | SELECT big_id, c1 FROM scandir |         1 | 0.49360118333996962169
-  2022-02-01 02:00:00+00 | SELECT big_id, c1 FROM scandir |         1 | 0.49358896959319343615
+aggregated_ts      |            querytxt            | ijoinstmt | fullscan |         liopct
+-------------------------+--------------------------------+-----------+----------+-------------------------
+  2022-02-07 19:00:00+00 | SELECT c1, c2, c3 FROM scandir |         1 |        0 | 0.94224811180627227600
+  2022-02-08 18:00:00+00 | SELECT c1, c2, c3 FROM scandir |         1 |        0 | 0.85878848935714620633
+  2022-02-08 17:00:00+00 | SELECT c1, c2, c3 FROM scandir |         1 |        0 | 0.50375937286121324252
+  2022-02-01 21:00:00+00 | SELECT big_id, c1 FROM scandir |         1 |        0 | 0.49955901362542753413
+  2022-02-01 21:00:00+00 | SELECT big_id, c1 FROM scandir |         1 |        0 | 0.49955491203221899122
+  2022-02-01 01:00:00+00 | SELECT big_id, c1 FROM scandir |         1 |        0 | 0.49377680659160290481
+  2022-02-01 01:00:00+00 | SELECT big_id, c1 FROM scandir |         1 |        0 | 0.49375504225612358826
+  2022-01-31 23:00:00+00 | SELECT big_id, c1 FROM scandir |         1 |        0 | 0.49361297910555658495
+  2022-01-31 23:00:00+00 | SELECT big_id, c1 FROM scandir |         1 |        0 | 0.49360118333996962169
+  2022-02-01 02:00:00+00 | SELECT big_id, c1 FROM scandir |         1 |        0 | 0.49358896959319343615
 (10 rows)
 
+
+Time: 2.101s total (execution 2.100s / network 0.000s)
 ```
