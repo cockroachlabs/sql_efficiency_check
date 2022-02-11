@@ -4,10 +4,13 @@ import "sort"
 
 type Row struct {
 	aggregatedTs string
+	appName      string
 	queryTxt     string
 	prettyPlan   string
-	fullScan     int
 	iJoinStmt    int
+	fullScan     int
+	implicitTxn  int
+	readsPerExec int
 	lioPct       float64
 }
 

@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/pkg/errors"
 	"log"
@@ -63,12 +62,13 @@ func run(ctx context.Context) error {
 	// Must be DB version v21+ to continue
 	err = getDbVersion(ctx, pool)
 	if err != nil {
+
 		return errors.Wrap(err, "could not connect")
 	}
 
 	//go metricsServer(ctx, pool)
 
-	// GetStmtLio bundle
+	// Get statements from crdb_internal.statement_statistics
 	var res []Row
 	res = getStmtLio(ctx, pool)
 	if err != nil {
@@ -78,10 +78,14 @@ func run(ctx context.Context) error {
 	// indexJoin
 	filterByiJoin(ctx, res, *MaxStmt)
 
-	fmt.Printf("\n\n")
-
 	// Full Scan
 	filterByFull(ctx, res, *MaxStmt)
+
+	// Implicit Txn
+	filterByImplicit(ctx, res, *MaxStmt)
+
+	// Big SQL Statements
+	filterByFatTxn(ctx, res, *MaxStmt)
 
 	return err
 }

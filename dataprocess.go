@@ -64,7 +64,7 @@ func filterByiJoin(ctx context.Context, res []Row, desiredLimit int) {
 			ldsp, pq = color.GreenString(lpct), false
 		}
 
-		fmt.Printf("%s %s\n", color.HiWhiteString(resIjoin[i].aggregatedTs), ldsp)
+		fmt.Printf("%s %s :: %d ReadsPerExec\n", color.HiWhiteString(resIjoin[i].aggregatedTs), ldsp, resIjoin[i].readsPerExec)
 		if pq {
 			fmt.Println("\t", color.HiWhiteString(resIjoin[i].queryTxt))
 			if *ShowPlans {
@@ -73,6 +73,7 @@ func filterByiJoin(ctx context.Context, res []Row, desiredLimit int) {
 		}
 	}
 
+	fmt.Printf("\n\n")
 	return
 }
 
@@ -109,12 +110,101 @@ func filterByFull(ctx context.Context, res []Row, desiredLimit int) {
 
 	for i := 0; i < actualLimit; i++ {
 		lpct := fmt.Sprintf("%6.2f%s", resFull[i].lioPct*100, "% Rows")
-		fmt.Printf("%s %s\n", color.HiWhiteString(resFull[i].aggregatedTs), color.HiRedString(lpct))
+		fmt.Printf("%s %s :: %d ReadsPerExec\n", color.HiWhiteString(resFull[i].aggregatedTs), color.HiRedString(lpct), resFull[i].readsPerExec)
 		fmt.Println("\t", color.HiWhiteString(resFull[i].queryTxt))
 		if *ShowPlans {
 			fmt.Println("", color.WhiteString(PrettyString(resFull[i].prettyPlan)))
 		}
 	}
 
+	fmt.Printf("\n\n")
+	return
+}
+
+func filterByImplicit(ctx context.Context, res []Row, desiredLimit int) {
+
+	// Configure Sort or Row Data Structure
+	//
+	lioPctDesc := func(c1, c2 *Row) bool {
+		return c1.lioPct > c2.lioPct
+	}
+	implicitDesc := func(c1, c2 *Row) bool {
+		return c1.implicitTxn > c2.implicitTxn
+	}
+
+	var resImplicit []Row
+	for i := 0; i < len(res); i++ {
+		if res[i].implicitTxn == 0 {
+			resImplicit = append(resImplicit, res[i])
+		}
+	}
+
+	var actualLimit int
+	if len(resImplicit) > desiredLimit {
+		actualLimit = desiredLimit
+	} else {
+		actualLimit = len(resImplicit)
+	}
+
+	fmt.Println(color.HiBlueString("======================================================"))
+	fmt.Println(color.HiBlueString("=== Top EXPLICIT Transactions by PCT of Logical IO ==="))
+	fmt.Println(color.HiBlueString("======================================================"))
+
+	OrderedBy(lioPctDesc, implicitDesc).Sort(resImplicit)
+
+	for i := 0; i < actualLimit; i++ {
+		lpct := fmt.Sprintf("%6.2f%s", resImplicit[i].lioPct*100, "% Rows")
+		fmt.Printf("%s %s :: %d ReadsPerExec\n", color.HiWhiteString(resImplicit[i].aggregatedTs), color.HiRedString(lpct), resImplicit[i].readsPerExec)
+		fmt.Println("\t", color.HiWhiteString(resImplicit[i].queryTxt))
+		if *ShowPlans {
+			fmt.Println("", color.WhiteString(PrettyString(resImplicit[i].prettyPlan)))
+		}
+	}
+
+	fmt.Printf("\n\n")
+	return
+}
+
+func filterByFatTxn(ctx context.Context, res []Row, desiredLimit int) {
+
+	// Configure Sort or Row Data Structure
+	//
+	readsPerExecDesc := func(c1, c2 *Row) bool {
+		return c1.readsPerExec > c2.readsPerExec
+	}
+	//implicitDesc := func(c1, c2 *Row) bool {
+	//	return c1.implicitTxn > c2.implicitTxn
+	//}
+
+	var resFatTxn []Row
+	for i := 0; i < len(res); i++ {
+		if res[i].readsPerExec > 1000 {
+			resFatTxn = append(resFatTxn, res[i])
+		}
+	}
+
+	var actualLimit int
+	if len(resFatTxn) > desiredLimit {
+		actualLimit = desiredLimit
+	} else {
+		actualLimit = len(resFatTxn)
+	}
+
+	fmt.Println(color.HiBlueString("======================================================"))
+	fmt.Println(color.HiBlueString("=== Top Big SQL statements ==========================="))
+	fmt.Println(color.HiBlueString("======================================================"))
+
+	OrderedBy(readsPerExecDesc).Sort(resFatTxn)
+
+	for i := 0; i < actualLimit; i++ {
+		lpct := fmt.Sprintf("%6.2f%s", resFatTxn[i].lioPct*100, "% Rows")
+		fmt.Printf("%s %s :: %d ReadsPerExec\n", color.HiWhiteString(resFatTxn[i].aggregatedTs), color.HiRedString(lpct), resFatTxn[i].readsPerExec)
+		fmt.Println("\t", color.HiWhiteString(resFatTxn[i].queryTxt))
+		if *ShowPlans {
+			fmt.Println("", color.WhiteString(PrettyString(resFatTxn[i].prettyPlan)))
+		}
+	}
+
+	fmt.Printf("\n\n")
 	return
 }
