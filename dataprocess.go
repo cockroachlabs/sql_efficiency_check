@@ -67,7 +67,7 @@ func filterByiJoin(ctx context.Context, res []Row, desiredLimit int) {
 		fmt.Printf("%s %s\n", color.HiWhiteString(resIjoin[i].aggregatedTs), ldsp)
 		if pq {
 			fmt.Println("\t", color.HiWhiteString(resIjoin[i].queryTxt))
-			if *PrintPlan {
+			if *ShowPlans {
 				fmt.Println("", color.WhiteString(PrettyString(resIjoin[i].prettyPlan)))
 			}
 		}
@@ -111,7 +111,7 @@ func filterByFull(ctx context.Context, res []Row, desiredLimit int) {
 		lpct := fmt.Sprintf("%6.2f%s", resFull[i].lioPct*100, "% Rows")
 		fmt.Printf("%s %s\n", color.HiWhiteString(resFull[i].aggregatedTs), color.HiRedString(lpct))
 		fmt.Println("\t", color.HiWhiteString(resFull[i].queryTxt))
-		if *PrintPlan {
+		if *ShowPlans {
 			fmt.Println("", color.WhiteString(PrettyString(resFull[i].prettyPlan)))
 		}
 	}

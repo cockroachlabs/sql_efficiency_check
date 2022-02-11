@@ -26,9 +26,9 @@ var (
 		"maxStmt",
 		5,
 		"the maximum number of SQL Statements to display for each issue")
-	PrintPlan = flag.Bool(
-		"printPlan",
-		true,
+	ShowPlans = flag.Bool(
+		"showPlans",
+		false,
 		"Print the Sampled Query Plan")
 	MetricsServer = flag.String(
 		"http",
