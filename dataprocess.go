@@ -51,6 +51,7 @@ func filterByiJoin(ctx context.Context, res []Row, desiredLimit int) {
 
 	var ldsp string
 	var pq bool
+	var maxlen int
 	for i := 0; i < actualLimit; i++ {
 		lpct := fmt.Sprintf("%6.2f%s", resIjoin[i].lioPct*100, "% Rows")
 
@@ -64,9 +65,14 @@ func filterByiJoin(ctx context.Context, res []Row, desiredLimit int) {
 			ldsp, pq = color.GreenString(lpct), false
 		}
 
-		fmt.Printf("%s %s :: %d ReadsPerExec\n", color.HiWhiteString(resIjoin[i].aggregatedTs), ldsp, resIjoin[i].readsPerExec)
+		fmt.Printf("%s %s :: %d RowsPerExec\n", color.HiWhiteString(resIjoin[i].aggregatedTs), ldsp, resIjoin[i].readsPerExec)
 		if pq {
-			fmt.Println("\t", color.HiWhiteString(resIjoin[i].queryTxt))
+			maxlen = len(resIjoin[i].queryTxt)
+			if maxlen > 70 && !(*ShowFull) {
+				maxlen = 70
+			}
+
+			fmt.Println("\t", color.HiWhiteString(resIjoin[i].queryTxt[:maxlen]))
 			if *ShowPlans {
 				fmt.Println("", color.WhiteString(PrettyString(resIjoin[i].prettyPlan)))
 			}
@@ -96,6 +102,8 @@ func filterByFull(ctx context.Context, res []Row, desiredLimit int) {
 	}
 
 	var actualLimit int
+	var maxlen int
+
 	if len(resFull) > desiredLimit {
 		actualLimit = desiredLimit
 	} else {
@@ -109,9 +117,13 @@ func filterByFull(ctx context.Context, res []Row, desiredLimit int) {
 	OrderedBy(lioPctDesc, fullScanDesc).Sort(resFull)
 
 	for i := 0; i < actualLimit; i++ {
+		maxlen = len(resFull[i].queryTxt)
+		if maxlen > 70 && !(*ShowFull) {
+			maxlen = 70
+		}
 		lpct := fmt.Sprintf("%6.2f%s", resFull[i].lioPct*100, "% Rows")
-		fmt.Printf("%s %s :: %d ReadsPerExec\n", color.HiWhiteString(resFull[i].aggregatedTs), color.HiRedString(lpct), resFull[i].readsPerExec)
-		fmt.Println("\t", color.HiWhiteString(resFull[i].queryTxt))
+		fmt.Printf("%s %s :: %d RowsPerExec\n", color.HiWhiteString(resFull[i].aggregatedTs), color.HiRedString(lpct), resFull[i].readsPerExec)
+		fmt.Println("\t", color.HiWhiteString(resFull[i].queryTxt)[:maxlen])
 		if *ShowPlans {
 			fmt.Println("", color.WhiteString(PrettyString(resFull[i].prettyPlan)))
 		}
@@ -140,6 +152,8 @@ func filterByImplicit(ctx context.Context, res []Row, desiredLimit int) {
 	}
 
 	var actualLimit int
+	var maxlen int
+
 	if len(resImplicit) > desiredLimit {
 		actualLimit = desiredLimit
 	} else {
@@ -153,9 +167,13 @@ func filterByImplicit(ctx context.Context, res []Row, desiredLimit int) {
 	OrderedBy(lioPctDesc, implicitDesc).Sort(resImplicit)
 
 	for i := 0; i < actualLimit; i++ {
+		maxlen = len(resImplicit[i].queryTxt)
+		if maxlen > 70 && !(*ShowFull) {
+			maxlen = 70
+		}
 		lpct := fmt.Sprintf("%6.2f%s", resImplicit[i].lioPct*100, "% Rows")
-		fmt.Printf("%s %s :: %d ReadsPerExec\n", color.HiWhiteString(resImplicit[i].aggregatedTs), color.HiRedString(lpct), resImplicit[i].readsPerExec)
-		fmt.Println("\t", color.HiWhiteString(resImplicit[i].queryTxt))
+		fmt.Printf("%s %s :: %d RowsPerExec\n", color.HiWhiteString(resImplicit[i].aggregatedTs), color.HiRedString(lpct), resImplicit[i].readsPerExec)
+		fmt.Println("\t", color.HiWhiteString(resImplicit[i].queryTxt)[:maxlen])
 		if *ShowPlans {
 			fmt.Println("", color.WhiteString(PrettyString(resImplicit[i].prettyPlan)))
 		}
@@ -184,6 +202,8 @@ func filterByFatTxn(ctx context.Context, res []Row, desiredLimit int) {
 	}
 
 	var actualLimit int
+	var maxlen int
+
 	if len(resFatTxn) > desiredLimit {
 		actualLimit = desiredLimit
 	} else {
@@ -197,9 +217,13 @@ func filterByFatTxn(ctx context.Context, res []Row, desiredLimit int) {
 	OrderedBy(readsPerExecDesc).Sort(resFatTxn)
 
 	for i := 0; i < actualLimit; i++ {
+		maxlen = len(resFatTxn[i].queryTxt)
+		if maxlen > 70 && !(*ShowFull) {
+			maxlen = 70
+		}
 		lpct := fmt.Sprintf("%6.2f%s", resFatTxn[i].lioPct*100, "% Rows")
-		fmt.Printf("%s %s :: %d ReadsPerExec\n", color.HiWhiteString(resFatTxn[i].aggregatedTs), color.HiRedString(lpct), resFatTxn[i].readsPerExec)
-		fmt.Println("\t", color.HiWhiteString(resFatTxn[i].queryTxt))
+		fmt.Printf("%s %s :: %d RowsPerExec\n", color.HiWhiteString(resFatTxn[i].aggregatedTs), color.HiRedString(lpct), resFatTxn[i].readsPerExec)
+		fmt.Println("\t", color.HiWhiteString(resFatTxn[i].queryTxt)[:maxlen])
 		if *ShowPlans {
 			fmt.Println("", color.WhiteString(PrettyString(resFatTxn[i].prettyPlan)))
 		}

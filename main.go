@@ -25,6 +25,10 @@ var (
 		"maxStmt",
 		5,
 		"the maximum number of SQL Statements to display for each issue")
+	ShowFull = flag.Bool(
+		"showFull",
+		false,
+		"Print the FULL statement")
 	ShowPlans = flag.Bool(
 		"showPlans",
 		false,
@@ -62,7 +66,12 @@ func run(ctx context.Context) error {
 	// Must be DB version v21+ to continue
 	err = getDbVersion(ctx, pool)
 	if err != nil {
+		return errors.Wrap(err, "could not connect")
+	}
 
+	// Show cluster id
+	err = showClusterId(ctx, pool)
+	if err != nil {
 		return errors.Wrap(err, "could not connect")
 	}
 

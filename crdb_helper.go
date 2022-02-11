@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/fatih/color"
 	"log"
 	"os"
 	"regexp"
@@ -20,7 +21,7 @@ func getDbVersion(ctx context.Context, pool *pgxpool.Pool) error {
 		return err
 	}
 
-	fmt.Printf("%s \n\n", dbversion)
+	fmt.Printf("\n%s\n", color.HiWhiteString(dbversion))
 
 	majorVersion, err := strconv.Atoi(regexp.MustCompile(`\.`).Split(strings.Fields(dbversion)[2], -1)[0][1:3])
 	minorVersion, err := strconv.Atoi(regexp.MustCompile(`\.`).Split(strings.Fields(dbversion)[2], -1)[1])
@@ -33,6 +34,22 @@ func getDbVersion(ctx context.Context, pool *pgxpool.Pool) error {
 	}
 
 	return err
+}
+
+func showClusterId(ctx context.Context, pool *pgxpool.Pool) error {
+	var clusterId string
+	clusterIdSQL := `
+	SELECT value FROM crdb_internal.node_build_info WHERE field = 'ClusterID';`
+
+	if err := pool.QueryRow(ctx, clusterIdSQL).Scan(&clusterId); err != nil {
+		fmt.Println(err)
+		return err
+	}
+
+	clustStr := fmt.Sprintf("ClusterID: %s \n\n", clusterId)
+	fmt.Printf("%s", color.HiWhiteString(clustStr))
+
+	return nil
 }
 
 func getStmtLio(ctx context.Context, pool *pgxpool.Pool) []Row {
@@ -74,7 +91,8 @@ WITH stmt_hr_calc AS (
     SELECT 
         aggregated_ts,
 		app_name,
-        substring(queryTxt for 30) as queryTxt,
+        -- substring(queryTxt for 30) as queryTxt,
+		queryTxt,
 		sampled_plan,
         fullScan,
         iJoinStmt,
