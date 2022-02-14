@@ -16,11 +16,7 @@ var (
 	ConnString = flag.String(
 		"conn",
 		"postgresql://root@localhost:26257/defaultdb?sslmode=disable",
-		"database connection string")
-	MaxConns = flag.Int(
-		"maxConns",
-		2,
-		"the maximum number of open database connections")
+		"database connect string")
 	MaxStmt = flag.Int(
 		"maxStmt",
 		5,
@@ -32,11 +28,11 @@ var (
 	ShowPlans = flag.Bool(
 		"showPlans",
 		false,
-		"Print the Sampled Query Plan")
-	MetricsServer = flag.String(
-		"http",
-		":8181",
-		"a bind string for the metrics server")
+		"Print the FULL Query Plan")
+	//MetricsServer = flag.String(
+	//	"http",
+	//	":8181",
+	//	"a bind string for the metrics server")
 )
 
 func main() {
@@ -56,7 +52,7 @@ func run(ctx context.Context) error {
 
 	// Create and Connect to Database pools
 	poolCfg, err := pgxpool.ParseConfig(*ConnString)
-	poolCfg.MaxConns = int32(*MaxConns)
+	poolCfg.MaxConns = 2
 
 	pool, err := pgxpool.ConnectConfig(ctx, poolCfg)
 	if err != nil {
