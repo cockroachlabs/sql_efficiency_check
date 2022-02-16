@@ -11,6 +11,7 @@ type Row struct {
 	fullScan     int
 	implicitTxn  int
 	readsPerExec int
+	lioAggTotal  int
 	lioPct       float64
 }
 

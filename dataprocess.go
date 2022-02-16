@@ -16,6 +16,88 @@ func PrettyString(str string) (string, error) {
 	return prettyJSON.String(), nil
 }
 
+func topStatements(ctx context.Context, res []Row, desiredLimit int) int {
+
+	// Configure Sort or Row Data Structure
+	//
+	lioTotalDesc := func(c1, c2 *Row) bool {
+		return c1.lioAggTotal > c2.lioAggTotal
+	}
+	//readsPerExecDesc := func(c1, c2 *Row) bool {
+	//	return c1.readsPerExec > c2.readsPerExec
+	//}
+	//fullScanDesc := func(c1, c2 *Row) bool {
+	//	return c1.fullScan > c2.fullScan
+	//}
+
+	var resTopStmt []Row
+	for i := 0; i < len(res); i++ {
+		if res[i].iJoinStmt == 1 {
+			resTopStmt = append(resTopStmt, res[i])
+		}
+	}
+
+	var actualLimit int
+	if len(resTopStmt) > desiredLimit {
+		actualLimit = desiredLimit
+	} else {
+		actualLimit = len(resTopStmt)
+	}
+
+	fmt.Println(color.HiBlueString("======================================================"))
+	fmt.Println(color.HiBlueString("=== Top Statements by Reads per Aggregate Interval ==="))
+	fmt.Println(color.HiBlueString("======================================================"))
+
+	OrderedBy(lioTotalDesc).Sort(resTopStmt)
+
+	var ldsp string
+	var lpct string
+	var pq bool
+	var maxlen int
+	var scnt float64
+	var lioAggTotalHr int
+
+	//lioAggTotalHr := res[0].lioAggTotal
+	//lioAggTotalHrDisp := fmt.Sprintf("%d LIO in top Hour", lioAggTotalHr)
+	//fmt.Printf("%s\n\n", color.HiWhiteString(lioAggTotalHrDisp))
+
+	for i := 0; i < actualLimit; i++ {
+
+		if i == 0 {
+			lioAggTotalHr = resTopStmt[i].lioAggTotal
+			lioAggTotalHrDisp := fmt.Sprintf("%d LIO in top Hour %s", lioAggTotalHr, resTopStmt[i].aggregatedTs)
+			fmt.Printf("%s\n\n", color.HiWhiteString(lioAggTotalHrDisp))
+		}
+
+		fmt.Printf("%s\n", color.HiWhiteString(resTopStmt[i].aggregatedTs))
+
+		lpct = fmt.Sprintf("%d Rows", resTopStmt[i].lioAggTotal)
+		scnt = float64(resTopStmt[i].lioAggTotal) * (resTopStmt[i].lioPct)
+		dexec := fmt.Sprintf("%s :: %8.0f ExecPerAggInterval :: %d RowsPerExec", lpct, scnt, resTopStmt[i].readsPerExec)
+
+		ldsp, pq = color.HiRedString(dexec), true
+
+		fmt.Printf("\t%s\n", ldsp)
+
+		if pq {
+			maxlen = len(resTopStmt[i].queryTxt)
+			if maxlen > 70 && !(*ShowFull) {
+				maxlen = 70
+			}
+
+			fmt.Println("\t", color.HiWhiteString(resTopStmt[i].queryTxt[:maxlen]))
+			if *ShowPlans {
+				fmt.Println("", color.WhiteString(PrettyString(resTopStmt[i].prettyPlan)))
+			}
+		}
+	}
+
+	fmt.Printf("\n\n")
+
+	//return resTopStmt[0].lioAggTotal
+	return lioAggTotalHr
+}
+
 func filterByiJoin(ctx context.Context, res []Row, desiredLimit int) {
 
 	// Configure Sort or Row Data Structure

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/fatih/color"
+	"github.com/jackc/pgx/v4"
 	"log"
 	"os"
 	"regexp"
@@ -68,12 +69,13 @@ WITH stmt_hr_calc AS (
     SELECT 
         aggregated_ts,
 		app_name,
+		fingerprint_id,
         metadata->>'query' as queryTxt,
 		sampled_plan,
         IF (metadata->'implicitTxn' = 'true', 1, 0) as implicitTxn,
         IF (metadata->'fullScan' = 'true', 1, 0) as fullScan,
         CAST(statistics->'statistics'->'numRows'->>'mean' as FLOAT)::INT as rowsMean, 
-        CAST(statistics->'statistics'->'cnt' as INT) as sumcnt,
+        CAST(statistics->'statistics'->'cnt' as INT) as execCnt,
         CASE 
             WHEN (sampled_plan @> '{"Name": "index join"}') THEN 1
             WHEN (sampled_plan->'Children'->0->>'Name' = 'index join') THEN 1
@@ -84,21 +86,21 @@ WITH stmt_hr_calc AS (
             ELSE 0
         END as iJoinStmt
     FROM crdb_internal.statement_statistics
-    -- WHERE metadata @> '{"distsql": false}' 
-    -- AND 
-    --       aggregated_ts > now() - INTERVAL '2hr'
+    -- WHERE 1=1 AND 
+    --  aggregated_ts > now() - INTERVAL '2hr'
 ), stmt_hr_stats AS (
     SELECT 
         aggregated_ts,
 		app_name,
-        -- substring(queryTxt for 30) as queryTxt,
+		fingerprint_id,
 		queryTxt,
 		sampled_plan,
         fullScan,
         iJoinStmt,
         implicitTxn,
-        sumcnt,
-        sum(rowsMean*sumcnt) OVER (PARTITION BY aggregated_ts, queryTxt) as lioPerStmt
+        execCnt,
+		sum(rowsMean*execCnt) OVER (PARTITION BY aggregated_ts) as lioAggTotal,
+        sum(rowsMean*execCnt) OVER (PARTITION BY aggregated_ts, fingerprint_id) as lioPerStmt
     FROM stmt_hr_calc
     ORDER BY lioPerStmt DESC
 ), stmt_hr_pct AS (
@@ -111,8 +113,9 @@ WITH stmt_hr_calc AS (
         iJoinStmt,
         implicitTxn,
         lioPerStmt,
-        sumcnt,
-        lioPerStmt/(sum(lioPerStmt) OVER (PARTITION BY aggregated_ts)) as lioPct
+		lioAggTotal,
+        execCnt,
+        lioPerStmt/lioAggTotal as lioPct
     FROM stmt_hr_stats
 )
 SELECT 
@@ -123,71 +126,95 @@ SELECT
 	fullScan,
     iJoinStmt, 
     implicitTxn,
-    (lioPerStmt/sumcnt)::int as readsPerExec,
+    (lioPerStmt/execCnt)::int as readsPerExec,
+	lioAggTotal,
     lioPct
 FROM stmt_hr_pct
-WHERE lioPct > 0.01 and 
-      app_name not like '%internal-%' 
+WHERE 1=1 and
+	  app_name not like '%internal-%'
 ORDER BY lioPct DESC`
 
-	//_stmtSqlLio := `
-	//WITH stmt_hr_calc AS (
-	//	SELECT
-	//		aggregated_ts,
-	//		metadata->>'query' as queryTxt,
-	//		sampled_plan,
-	//		IF (metadata->'implicitTxn' = 'true', 1, 0) as implicitTxn,
-	//		IF (metadata->'fullScan' = 'true', 1, 0) as fullScan,
-	//		CAST(statistics->'statistics'->'numRows'->>'mean' as FLOAT)::INT as rowsMean,
-	//		CAST(statistics->'statistics'->'cnt' as INT) as sumcnt,
-	//		CASE
-	//			WHEN (sampled_plan @> '{"Name": "index join"}') THEN 1
-	//			WHEN (sampled_plan->'Children'->0->>'Name' = 'index join') THEN 1
-	//			WHEN (sampled_plan->'Children'->1->>'Name' = 'index join') THEN 1
-	//			WHEN (sampled_plan->'Children'->2->>'Name' = 'index join') THEN 1
-	//			WHEN (sampled_plan->'Children'->3->>'Name' = 'index join') THEN 1
-	//			WHEN (sampled_plan->'Children'->4->>'Name' = 'index join') THEN 1
-	//			ELSE 0
-	//		END as iJoinStmt
-	//	FROM crdb_internal.statement_statistics
-	//	-- AND
-	//	--       aggregated_ts > now() - INTERVAL '2hr'
-	//), stmt_hr_stats AS (
-	//	SELECT
-	//		aggregated_ts,
-	//		-- substring(queryTxt for 30) as queryTxt,
-	//		queryTxt,
-	//		sampled_plan,
-	//		fullScan,
-	//		iJoinStmt,
-	//		sum(rowsMean*sumcnt) OVER (PARTITION BY aggregated_ts, queryTxt) as lioPerStmt
-	//	FROM stmt_hr_calc
-	//	ORDER BY lioPerStmt DESC
-	//), stmt_hr_pct AS (
-	//	SELECT
-	//		aggregated_ts,
-	//		queryTxt,
-	//		sampled_plan,
-	//		fullScan,
-	//		iJoinStmt,
-	//		lioPerStmt/(sum(lioPerStmt) OVER (PARTITION BY aggregated_ts)) as lioPct
-	//	FROM stmt_hr_stats
-	//)
-	//SELECT
-	//	experimental_strftime(aggregated_ts,'%Y-%m-%d %H:%M:%S%z') as aggregated_ts,
-	//	queryTxt,
-	//	sampled_plan,
-	//	fullScan,
-	//	iJoinStmt,
-	//	lioPct
-	//FROM stmt_hr_pct
-	//WHERE iJoinStmt = 1
-	//ORDER BY lioPct DESC;`
+	stmtSqlLioHr := `
+WITH stmt_hr_calc AS (
+    SELECT 
+        aggregated_ts,
+		app_name,
+		fingerprint_id,
+        metadata->>'query' as queryTxt,
+		sampled_plan,
+        IF (metadata->'implicitTxn' = 'true', 1, 0) as implicitTxn,
+        IF (metadata->'fullScan' = 'true', 1, 0) as fullScan,
+        CAST(statistics->'statistics'->'numRows'->>'mean' as FLOAT)::INT as rowsMean, 
+        CAST(statistics->'statistics'->'cnt' as INT) as execCnt,
+        CASE 
+            WHEN (sampled_plan @> '{"Name": "index join"}') THEN 1
+            WHEN (sampled_plan->'Children'->0->>'Name' = 'index join') THEN 1
+            WHEN (sampled_plan->'Children'->1->>'Name' = 'index join') THEN 1
+            WHEN (sampled_plan->'Children'->2->>'Name' = 'index join') THEN 1
+            WHEN (sampled_plan->'Children'->3->>'Name' = 'index join') THEN 1
+            WHEN (sampled_plan->'Children'->4->>'Name' = 'index join') THEN 1
+            ELSE 0
+        END as iJoinStmt
+    FROM crdb_internal.statement_statistics
+    WHERE 1=1 AND 
+    aggregated_ts > now() - INTERVAL '1hr'
+), stmt_hr_stats AS (
+    SELECT 
+        aggregated_ts,
+		app_name,
+		fingerprint_id,
+		queryTxt,
+		sampled_plan,
+        fullScan,
+        iJoinStmt,
+        implicitTxn,
+        execCnt,
+		sum(rowsMean*execCnt) OVER (PARTITION BY aggregated_ts) as lioAggTotal,
+        sum(rowsMean*execCnt) OVER (PARTITION BY aggregated_ts, fingerprint_id) as lioPerStmt
+    FROM stmt_hr_calc
+    ORDER BY lioPerStmt DESC
+), stmt_hr_pct AS (
+    SELECT 
+        aggregated_ts,
+		app_name,
+        queryTxt,
+		sampled_plan,
+        fullScan,
+        iJoinStmt,
+        implicitTxn,
+        lioPerStmt,
+		lioAggTotal,
+        execCnt,
+        lioPerStmt/lioAggTotal as lioPct
+    FROM stmt_hr_stats
+)
+SELECT 
+    experimental_strftime(aggregated_ts,'%Y-%m-%d %H:%M:%S%z') as aggregated_ts, 
+	app_name,
+    queryTxt, 
+	sampled_plan,
+	fullScan,
+    iJoinStmt, 
+    implicitTxn,
+    (lioPerStmt/execCnt)::int as readsPerExec,
+	lioAggTotal,
+    lioPct
+FROM stmt_hr_pct
+WHERE 1=1 and
+app_name not like '%internal-%'
+ORDER BY lioPct DESC`
 
 	//var rowArray Row
 	rowArray := Row{}
 	var resultSet []Row
-	rows, err := pool.Query(ctx, stmtSqlLio)
+	var rows pgx.Rows
+	var err error
+
+	if *LastHour {
+		rows, err = pool.Query(ctx, stmtSqlLioHr)
+	} else {
+		rows, err = pool.Query(ctx, stmtSqlLio)
+	}
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -195,7 +222,7 @@ ORDER BY lioPct DESC`
 	defer rows.Close()
 
 	for rows.Next() {
-		err := rows.Scan(&rowArray.aggregatedTs, &rowArray.appName, &rowArray.queryTxt, &rowArray.prettyPlan, &rowArray.fullScan, &rowArray.iJoinStmt, &rowArray.implicitTxn, &rowArray.readsPerExec, &rowArray.lioPct)
+		err := rows.Scan(&rowArray.aggregatedTs, &rowArray.appName, &rowArray.queryTxt, &rowArray.prettyPlan, &rowArray.fullScan, &rowArray.iJoinStmt, &rowArray.implicitTxn, &rowArray.readsPerExec, &rowArray.lioAggTotal, &rowArray.lioPct)
 		if err != nil {
 			log.Fatal(err)
 		}

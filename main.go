@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/pkg/errors"
 	"log"
@@ -17,6 +18,10 @@ var (
 		"conn",
 		"postgresql://root@localhost:26257/defaultdb?sslmode=disable",
 		"database connect string")
+	LastHour = flag.Bool(
+		"lastHr",
+		false,
+		"Sample \"now() - INTERVAL '1hr'\"")
 	MaxStmt = flag.Int(
 		"maxStmt",
 		5,
@@ -78,6 +83,19 @@ func run(ctx context.Context) error {
 	res = getStmtLio(ctx, pool)
 	if err != nil {
 		return errors.Wrap(err, "could not connect")
+	}
+
+	if len(res) < 2 {
+		fmt.Printf("Not enough statements... mostly idle cluster")
+		os.Exit(0)
+	}
+
+	// Top Overall Statements
+	topLioHr := topStatements(ctx, res, *MaxStmt)
+	// Exit if mostly idle system
+	if topLioHr < 3600*10 {
+		fmt.Println("Mostly Idle system...Less than 10 LIO/sec in top Hour")
+		return err
 	}
 
 	// indexJoin
