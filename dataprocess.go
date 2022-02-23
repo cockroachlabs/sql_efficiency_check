@@ -23,6 +23,9 @@ func topStatements(ctx context.Context, res []Row, desiredLimit int) int {
 	lioTotalDesc := func(c1, c2 *Row) bool {
 		return c1.lioAggTotal > c2.lioAggTotal
 	}
+	readsPerExecDesc := func(c1, c2 *Row) bool {
+		return c1.readsPerExec > c2.readsPerExec
+	}
 	//readsPerExecDesc := func(c1, c2 *Row) bool {
 	//	return c1.readsPerExec > c2.readsPerExec
 	//}
@@ -32,9 +35,7 @@ func topStatements(ctx context.Context, res []Row, desiredLimit int) int {
 
 	var resTopStmt []Row
 	for i := 0; i < len(res); i++ {
-		if res[i].iJoinStmt == 1 {
-			resTopStmt = append(resTopStmt, res[i])
-		}
+		resTopStmt = append(resTopStmt, res[i])
 	}
 
 	var actualLimit int
@@ -48,7 +49,7 @@ func topStatements(ctx context.Context, res []Row, desiredLimit int) int {
 	fmt.Println(color.HiBlueString("=== Top Statements by Reads per Aggregate Interval ==="))
 	fmt.Println(color.HiBlueString("======================================================"))
 
-	OrderedBy(lioTotalDesc).Sort(resTopStmt)
+	OrderedBy(lioTotalDesc, readsPerExecDesc).Sort(resTopStmt)
 
 	var ldsp string
 	var lpct string

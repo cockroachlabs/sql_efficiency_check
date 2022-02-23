@@ -2,17 +2,44 @@ package main
 
 import (
 	"context"
+	_ "embed"
 	"fmt"
 	"github.com/fatih/color"
 	"github.com/jackc/pgx/v4"
+	"github.com/jackc/pgx/v4/pgxpool"
 	"log"
 	"os"
 	"regexp"
 	"strconv"
 	"strings"
-
-	"github.com/jackc/pgx/v4/pgxpool"
+	"time"
 )
+
+//
+// SQL statement to retrieve rows by statement and compute the number of rows
+// referenced "Logical IO" Lio.  There are also flags to show if they are
+// indexJoins, fullScans, or implicit transactions.  This is returned
+// as an array of Rows to main.
+//
+// This data is then used to identify the efficiency of the various statements
+// calling out issues.
+//
+//go:embed query_sql_statistics_1hr.sql
+var stmtSqlLioHr string
+
+//go:embed query_sql_statistics_all.sql
+var stmtSqlLio string
+
+//go:embed query_sql_statistics_sample.sql
+var stmtSample string
+
+func noNegVals(a int, b int) float64 {
+	if a > b {
+		return float64(a - b)
+	} else {
+		return float64(0)
+	}
+}
 
 func getDbVersion(ctx context.Context, pool *pgxpool.Pool) error {
 	var dbversion string
@@ -54,155 +81,9 @@ func showClusterId(ctx context.Context, pool *pgxpool.Pool) error {
 }
 
 func getStmtLio(ctx context.Context, pool *pgxpool.Pool) []Row {
-
-	// SQL statement to retrieve rows by statement and compute the number of rows
-	// referenced "Logical IO" Lio.  There are also flags to show if they are
-	// indexJoins, fullScans, or implicit transactions.  This is returned
-	// as an array of Rows to main.
-	//
-	// This data is then used to identify the efficiency of the various statements
-	// calling out issues.
-	//
-
-	stmtSqlLio := `
-WITH stmt_hr_calc AS (
-    SELECT 
-        aggregated_ts,
-		app_name,
-		fingerprint_id,
-        metadata->>'query' as queryTxt,
-		sampled_plan,
-        IF (metadata->'implicitTxn' = 'true', 1, 0) as implicitTxn,
-        IF (metadata->'fullScan' = 'true', 1, 0) as fullScan,
-        CAST(statistics->'statistics'->'numRows'->>'mean' as FLOAT)::INT as rowsMean, 
-        CAST(statistics->'statistics'->'cnt' as INT) as execCnt,
-        CASE 
-            WHEN (sampled_plan @> '{"Name": "index join"}') THEN 1
-            WHEN (sampled_plan->'Children'->0->>'Name' = 'index join') THEN 1
-            WHEN (sampled_plan->'Children'->1->>'Name' = 'index join') THEN 1
-            WHEN (sampled_plan->'Children'->2->>'Name' = 'index join') THEN 1
-            WHEN (sampled_plan->'Children'->3->>'Name' = 'index join') THEN 1
-            WHEN (sampled_plan->'Children'->4->>'Name' = 'index join') THEN 1
-            ELSE 0
-        END as iJoinStmt
-    FROM crdb_internal.statement_statistics
-    -- WHERE 1=1 AND 
-    --  aggregated_ts > now() - INTERVAL '2hr'
-), stmt_hr_stats AS (
-    SELECT 
-        aggregated_ts,
-		app_name,
-		fingerprint_id,
-		queryTxt,
-		sampled_plan,
-        fullScan,
-        iJoinStmt,
-        implicitTxn,
-        execCnt,
-		sum(rowsMean*execCnt) OVER (PARTITION BY aggregated_ts) as lioAggTotal,
-        sum(rowsMean*execCnt) OVER (PARTITION BY aggregated_ts, fingerprint_id) as lioPerStmt
-    FROM stmt_hr_calc
-    ORDER BY lioPerStmt DESC
-), stmt_hr_pct AS (
-    SELECT 
-        aggregated_ts,
-		app_name,
-        queryTxt,
-		sampled_plan,
-        fullScan,
-        iJoinStmt,
-        implicitTxn,
-        lioPerStmt,
-		lioAggTotal,
-        execCnt,
-        lioPerStmt/lioAggTotal as lioPct
-    FROM stmt_hr_stats
-)
-SELECT 
-    experimental_strftime(aggregated_ts,'%Y-%m-%d %H:%M:%S%z') as aggregated_ts, 
-	app_name,
-    queryTxt, 
-	sampled_plan,
-	fullScan,
-    iJoinStmt, 
-    implicitTxn,
-    (lioPerStmt/execCnt)::int as readsPerExec,
-	lioAggTotal,
-    lioPct
-FROM stmt_hr_pct
-WHERE 1=1 and
-	  app_name not like '%internal-%'
-ORDER BY lioPct DESC`
-
-	stmtSqlLioHr := `
-WITH stmt_hr_calc AS (
-    SELECT 
-        aggregated_ts,
-		app_name,
-		fingerprint_id,
-        metadata->>'query' as queryTxt,
-		sampled_plan,
-        IF (metadata->'implicitTxn' = 'true', 1, 0) as implicitTxn,
-        IF (metadata->'fullScan' = 'true', 1, 0) as fullScan,
-        CAST(statistics->'statistics'->'numRows'->>'mean' as FLOAT)::INT as rowsMean, 
-        CAST(statistics->'statistics'->'cnt' as INT) as execCnt,
-        CASE 
-            WHEN (sampled_plan @> '{"Name": "index join"}') THEN 1
-            WHEN (sampled_plan->'Children'->0->>'Name' = 'index join') THEN 1
-            WHEN (sampled_plan->'Children'->1->>'Name' = 'index join') THEN 1
-            WHEN (sampled_plan->'Children'->2->>'Name' = 'index join') THEN 1
-            WHEN (sampled_plan->'Children'->3->>'Name' = 'index join') THEN 1
-            WHEN (sampled_plan->'Children'->4->>'Name' = 'index join') THEN 1
-            ELSE 0
-        END as iJoinStmt
-    FROM crdb_internal.statement_statistics
-    WHERE 1=1 AND 
-    aggregated_ts > now() - INTERVAL '1hr'
-), stmt_hr_stats AS (
-    SELECT 
-        aggregated_ts,
-		app_name,
-		fingerprint_id,
-		queryTxt,
-		sampled_plan,
-        fullScan,
-        iJoinStmt,
-        implicitTxn,
-        execCnt,
-		sum(rowsMean*execCnt) OVER (PARTITION BY aggregated_ts) as lioAggTotal,
-        sum(rowsMean*execCnt) OVER (PARTITION BY aggregated_ts, fingerprint_id) as lioPerStmt
-    FROM stmt_hr_calc
-    ORDER BY lioPerStmt DESC
-), stmt_hr_pct AS (
-    SELECT 
-        aggregated_ts,
-		app_name,
-        queryTxt,
-		sampled_plan,
-        fullScan,
-        iJoinStmt,
-        implicitTxn,
-        lioPerStmt,
-		lioAggTotal,
-        execCnt,
-        lioPerStmt/lioAggTotal as lioPct
-    FROM stmt_hr_stats
-)
-SELECT 
-    experimental_strftime(aggregated_ts,'%Y-%m-%d %H:%M:%S%z') as aggregated_ts, 
-	app_name,
-    queryTxt, 
-	sampled_plan,
-	fullScan,
-    iJoinStmt, 
-    implicitTxn,
-    (lioPerStmt/execCnt)::int as readsPerExec,
-	lioAggTotal,
-    lioPct
-FROM stmt_hr_pct
-WHERE 1=1 and
-app_name not like '%internal-%'
-ORDER BY lioPct DESC`
+	// Run SQL to extract statement statistics and normalize to LIO
+	// These values are returned as a data structure of Rows which
+	// is then operated on by various statements to show potential inefficiencies
 
 	//var rowArray Row
 	rowArray := Row{}
@@ -210,6 +91,7 @@ ORDER BY lioPct DESC`
 	var rows pgx.Rows
 	var err error
 
+	// Sample Last Hour or all History
 	if *LastHour {
 		rows, err = pool.Query(ctx, stmtSqlLioHr)
 	} else {
@@ -228,6 +110,76 @@ ORDER BY lioPct DESC`
 		}
 		resultSet = append(resultSet, rowArray)
 	}
-
 	return resultSet
+}
+
+func lioSampler(ctx context.Context, pool *pgxpool.Pool) error {
+
+	// Run SQL to extract statement statistics and normalize to LIO
+	// These values are returned as a data structure of Rows which
+	// is then operated on by various statements to show potential inefficiencies
+
+	//var rowArray Row
+	rowArray := RowLioSample{}
+	rowArrayLast := RowLioSample{
+		aggEpochSecs: 0,
+		lioTotal:     0,
+		fullLio:      0,
+		iJoinLio:     0,
+		explicitLio:  0,
+		healthyLio:   0,
+	}
+
+	//var resultSet []RowLioSample
+	var rows pgx.Rows
+	var err error
+
+	for {
+		// Sample Last Hour or all History
+		rows, err = pool.Query(ctx, stmtSample)
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		//defer rows.Close()
+
+		for rows.Next() {
+			err := rows.Scan(&rowArray.aggEpochSecs, &rowArray.lioTotal, &rowArray.fullLio, &rowArray.iJoinLio, &rowArray.explicitLio, &rowArray.healthyLio)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			if rowArrayLast.aggEpochSecs != rowArray.aggEpochSecs {
+				log.Printf("RESET COUNTERs due to AggInterval change")
+				stmtStats.Reset()
+			} else {
+				aggEpochTs.Set(float64(rowArray.aggEpochSecs))
+				//lioTotal.Set(float64(rowArray.lioTotal))
+				//fullLio.Set(float64(rowArray.fullLio))
+				//iJoinLio.Set(float64(rowArray.iJoinLio))
+				//explicitLio.Set(float64(rowArray.explicitLio))
+				//healthyLio.Set(float64(rowArray.healthyLio))
+
+				//stmtStats.WithLabelValues("Total").Add(noNegVals(rowArray.lioTotal, rowArrayLast.lioTotal))
+				stmtStats.WithLabelValues("full").Add(noNegVals(rowArray.fullLio, rowArrayLast.fullLio))
+				stmtStats.WithLabelValues("ijoin").Add(noNegVals(rowArray.iJoinLio, rowArrayLast.iJoinLio))
+				stmtStats.WithLabelValues("explicit").Add(noNegVals(rowArray.explicitLio, rowArrayLast.explicitLio))
+				stmtStats.WithLabelValues("Optimized").Add(noNegVals(rowArray.healthyLio, rowArrayLast.healthyLio))
+			}
+
+			rowArrayLast.aggEpochSecs = rowArray.aggEpochSecs
+			rowArrayLast.lioTotal = rowArray.lioTotal
+			rowArrayLast.fullLio = rowArray.fullLio
+			rowArrayLast.iJoinLio = rowArray.iJoinLio
+			rowArrayLast.explicitLio = rowArray.explicitLio
+			rowArrayLast.healthyLio = rowArray.healthyLio
+		}
+		rows.Close()
+
+		//Sample every 10 seconds
+		time.Sleep(10 * time.Second)
+	}
+
+	return err
 }

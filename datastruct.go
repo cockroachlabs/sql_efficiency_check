@@ -15,6 +15,15 @@ type Row struct {
 	lioPct       float64
 }
 
+type RowLioSample struct {
+	aggEpochSecs int
+	lioTotal     int
+	fullLio      int
+	iJoinLio     int
+	explicitLio  int
+	healthyLio   int
+}
+
 type lessFunc func(p1, p2 *Row) bool
 
 // multiSorter implements the Sort interface, sorting the changes within.

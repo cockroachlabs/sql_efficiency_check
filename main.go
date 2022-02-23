@@ -34,10 +34,14 @@ var (
 		"showPlans",
 		false,
 		"Print the FULL Query Plan")
-	//MetricsServer = flag.String(
-	//	"http",
-	//	":8181",
-	//	"a bind string for the metrics server")
+	MetricsServerPort = flag.String(
+		"http",
+		":8181",
+		"a bind string for the metrics server")
+	MetricServer = flag.Bool(
+		"metricServer",
+		false,
+		"Run Metric Server instead of Report")
 )
 
 func main() {
@@ -57,7 +61,7 @@ func run(ctx context.Context) error {
 
 	// Create and Connect to Database pools
 	poolCfg, err := pgxpool.ParseConfig(*ConnString)
-	poolCfg.MaxConns = 2
+	poolCfg.MaxConns = 10
 
 	pool, err := pgxpool.ConnectConfig(ctx, poolCfg)
 	if err != nil {
@@ -76,8 +80,14 @@ func run(ctx context.Context) error {
 		return errors.Wrap(err, "could not connect")
 	}
 
-	//go metricsServer(ctx, pool)
+	if *MetricServer {
+		fmt.Printf("Running Prometheus Metric Server\n")
+		go lioSampler(ctx, pool)
+		//go metricsServer(ctx, pool)
+		metricsServer(ctx, pool)
+	}
 
+	//
 	// Get statements from crdb_internal.statement_statistics
 	var res []Row
 	res = getStmtLio(ctx, pool)
@@ -95,7 +105,7 @@ func run(ctx context.Context) error {
 	// Exit if mostly idle system
 	if topLioHr < 3600*10 {
 		fmt.Println("Mostly Idle system...Less than 10 LIO/sec in top Hour")
-		return err
+		//return err
 	}
 
 	// indexJoin
