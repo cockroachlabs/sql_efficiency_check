@@ -18,10 +18,18 @@ var (
 		"conn",
 		"postgresql://root@localhost:26257/defaultdb?sslmode=disable",
 		"database connect string")
+	MetricsServerPort = flag.String(
+		"http",
+		":8181",
+		"a bind string for the metrics server")
+	MetricServer = flag.Bool(
+		"metricServer",
+		false,
+		"Run Metric Server instead of Report... (default false)")
 	LastHour = flag.Bool(
 		"lastHr",
 		false,
-		"Sample \"now() - INTERVAL '1hr'\"")
+		"Using \"now() - INTERVAL '1hr'\" ")
 	MaxStmt = flag.Int(
 		"maxStmt",
 		5,
@@ -33,15 +41,7 @@ var (
 	ShowPlans = flag.Bool(
 		"showPlans",
 		false,
-		"Print the FULL Query Plan")
-	MetricsServerPort = flag.String(
-		"http",
-		":8181",
-		"a bind string for the metrics server")
-	MetricServer = flag.Bool(
-		"metricServer",
-		false,
-		"Run Metric Server instead of Report")
+		"Print the FULL Query Plan (default false)")
 )
 
 func main() {
@@ -82,43 +82,53 @@ func run(ctx context.Context) error {
 
 	if *MetricServer {
 		fmt.Printf("Running Prometheus Metric Server\n")
+
+		// Start the statement Logical IO sampler in the background
 		go lioSampler(ctx, pool)
-		//go metricsServer(ctx, pool)
-		metricsServer(ctx, pool)
+		err = metricsServer(ctx, pool)
+		if err != nil {
+			return errors.Wrap(err, "lioSampler Failed")
+		}
+
+		// Start teh Metrics Server in the Foreground
+		err = metricsServer(ctx, pool)
+		if err != nil {
+			return errors.Wrap(err, "MetricsServer Failed")
+		}
+	} else {
+		// Run sql_efficiency_check in REPORT mode
+
+		// Get statements from crdb_internal.statement_statistics
+		var res []Row
+		res = getStmtLio(ctx, pool)
+		if err != nil {
+			return errors.Wrap(err, "could not connect")
+		}
+
+		if len(res) < 2 {
+			fmt.Printf("Not enough statements... mostly idle cluster")
+			os.Exit(0)
+		}
+
+		// Top Overall Statements
+		topLioHr := topStatements(ctx, res, *MaxStmt)
+		// Exit if mostly idle system
+		if topLioHr < 3600*10 {
+			fmt.Println("Mostly Idle system...Less than 10 LIO/sec in top Hour")
+			//return err
+		}
+
+		// indexJoin
+		filterByiJoin(ctx, res, *MaxStmt)
+
+		// Full Scan
+		filterByFull(ctx, res, *MaxStmt)
+
+		// Implicit Txn
+		filterByImplicit(ctx, res, *MaxStmt)
+
+		// Big SQL Statements
+		filterByFatTxn(ctx, res, *MaxStmt)
 	}
-
-	//
-	// Get statements from crdb_internal.statement_statistics
-	var res []Row
-	res = getStmtLio(ctx, pool)
-	if err != nil {
-		return errors.Wrap(err, "could not connect")
-	}
-
-	if len(res) < 2 {
-		fmt.Printf("Not enough statements... mostly idle cluster")
-		os.Exit(0)
-	}
-
-	// Top Overall Statements
-	topLioHr := topStatements(ctx, res, *MaxStmt)
-	// Exit if mostly idle system
-	if topLioHr < 3600*10 {
-		fmt.Println("Mostly Idle system...Less than 10 LIO/sec in top Hour")
-		//return err
-	}
-
-	// indexJoin
-	filterByiJoin(ctx, res, *MaxStmt)
-
-	// Full Scan
-	filterByFull(ctx, res, *MaxStmt)
-
-	// Implicit Txn
-	filterByImplicit(ctx, res, *MaxStmt)
-
-	// Big SQL Statements
-	filterByFatTxn(ctx, res, *MaxStmt)
-
 	return err
 }

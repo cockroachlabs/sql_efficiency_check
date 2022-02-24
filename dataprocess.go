@@ -77,7 +77,6 @@ func topStatements(ctx context.Context, res []Row, desiredLimit int) int {
 		dexec := fmt.Sprintf("%s :: %8.0f ExecPerAggInterval :: %d RowsPerExec", lpct, scnt, resTopStmt[i].readsPerExec)
 
 		ldsp, pq = color.HiRedString(dexec), true
-
 		fmt.Printf("\t%s\n", ldsp)
 
 		if pq {
