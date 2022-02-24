@@ -73,6 +73,6 @@ Running Prometheus Metric Server
 
 ### Dashboard output
 
-The SQL efficiency Dashboard [json](SQL Efficiency Dashboard-1645677578406.json) can be used to ingest the metrics displayed when running ing `-metricServer` mode.  Below is an example output:
+The SQL efficiency Dashboard [json](SQLEfficiencyDashboard-1645677578406.json) can be used to ingest the metrics displayed when running ing `-metricServer` mode.  Below is an example output:
 
 ![](img/sql_efficiency_dashboard_prometheus.png)
