@@ -1,0 +1,5 @@
+url: http://host.docker.internal:8181/
+port: 8181
+bucket:
+  startns: 100000 
+  bins: 10 
