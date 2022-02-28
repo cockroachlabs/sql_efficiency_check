@@ -1,0 +1,11 @@
+
+# This compose file contains recipes that are called from the GitHub
+# Actions workflows. Host networking is used, because it simplifies
+# the connectivity from the cockroach
+#
+version: "1.0"
+services:
+  cockroachdb-v21.2:
+    image: cockroachdb/cockroach:latest-v21.2
+    network_mode: host
+    command: start-single-node --insecure
