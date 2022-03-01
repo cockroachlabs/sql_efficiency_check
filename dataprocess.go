@@ -55,7 +55,8 @@ func topStatements(ctx context.Context, res []Row, desiredLimit int) int {
 	var lpct string
 	var pq bool
 	var maxlen int
-	var scnt float64
+	var execHr int
+	var pct float64
 	var lioAggTotalHr int
 
 	//lioAggTotalHr := res[0].lioAggTotal
@@ -72,9 +73,10 @@ func topStatements(ctx context.Context, res []Row, desiredLimit int) int {
 
 		fmt.Printf("%s\n", color.HiWhiteString(resTopStmt[i].aggregatedTs))
 
-		lpct = fmt.Sprintf("%d Rows", resTopStmt[i].lioAggTotal)
-		scnt = float64(resTopStmt[i].lioAggTotal) * (resTopStmt[i].lioPct)
-		dexec := fmt.Sprintf("%s :: %8.0f ExecPerAggInterval :: %d RowsPerExec", lpct, scnt, resTopStmt[i].readsPerExec)
+		lpct = fmt.Sprintf("%10.0f Rows", float64(resTopStmt[i].lioAggTotal)*resTopStmt[i].lioPct)
+		pct = float64(100) * (resTopStmt[i].lioPct)
+		execHr = int(resTopStmt[i].lioPct*float64(resTopStmt[i].lioAggTotal)) / resTopStmt[i].readsPerExec
+		dexec := fmt.Sprintf("%s :: %6.2f%s  :: %d ExecsPerHr :: %d RowsPerExec", lpct, pct, "% Rows", execHr, resTopStmt[i].readsPerExec)
 
 		ldsp, pq = color.HiRedString(dexec), true
 		fmt.Printf("\t%s\n", ldsp)
