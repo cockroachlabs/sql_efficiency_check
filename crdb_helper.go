@@ -154,7 +154,7 @@ func lioSampler(ctx context.Context, pool *pgxpool.Pool) error {
 				log.Printf("RESET COUNTERs due to AggInterval change")
 				stmtStats.Reset()
 			} else {
-				aggEpochTs.Set(float64(rowArray.aggEpochSecs))
+				//aggEpochTs.Set(float64(rowArray.aggEpochSecs))
 				//lioTotal.Set(float64(rowArray.lioTotal))
 				//fullLio.Set(float64(rowArray.fullLio))
 				//iJoinLio.Set(float64(rowArray.iJoinLio))

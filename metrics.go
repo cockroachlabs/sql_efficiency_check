@@ -41,59 +41,12 @@ var (
 		10., 20., 30., 40., 50., 60.,
 	}
 
-	aggEpochTs = promauto.NewGauge(prometheus.GaugeOpts{
-		Name: "aggEpochTs",
-	})
-	lioTotal = promauto.NewGauge(prometheus.GaugeOpts{
-		Name: "lioTotal",
-	})
-	fullLio = promauto.NewGauge(prometheus.GaugeOpts{
-		Name: "fullLio",
-	})
-	iJoinLio = promauto.NewGauge(prometheus.GaugeOpts{
-		Name: "iJoinLio",
-	})
-	explicitLio = promauto.NewGauge(prometheus.GaugeOpts{
-		Name: "explicitLio",
-	})
-	healthyLio = promauto.NewGauge(prometheus.GaugeOpts{
-		Name: "healthyLio",
-	})
-
 	stmtStats = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "stmt_stats",
 	}, []string{"lio"})
 )
 
 func metricsServer(ctx context.Context, db *pgxpool.Pool) error {
-	// Set up some one-shot gauges to record configuration.
-	//info := promauto.NewCounterVec(prometheus.CounterOpts{
-	//	Name: "flag_info",
-	//}, []string{"flag"})
-	//info.WithLabelValues("max_conns").Add(float64(99))
-	//info.WithLabelValues("think_time").Add(float64(42))
-	//info.WithLabelValues("unique_ids").Add(float64(101))
-
-	//if g := info.WithLabelValues("select_for_update"); *UseForUpdate {
-	//	g.Set(1)
-	//} else {
-	//	g.Set(0)
-	//}
-	//if g := info.WithLabelValues("save_point"); *UseSavePoint {
-	//	g.Set(1)
-	//} else {
-	//	g.Set(0)
-	//}
-	//info.WithLabelValues("workers_per_id").Set(float64(*WorkersPerId))
-
-	// DB Information
-	//promauto.NewGaugeFunc(prometheus.GaugeOpts{
-	//	Name: "db_acquired_connection_count",
-	//}, func() float64 { return float64(db.Stat().AcquiredConns()) })
-	//promauto.NewGaugeFunc(prometheus.GaugeOpts{
-	//	Name: "db_idle_connection_count",
-	//}, func() float64 { return float64(db.Stat().IdleConns()) })
-	//
 
 	prometheus.Unregister(collectors.NewGoCollector())
 
