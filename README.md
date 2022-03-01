@@ -56,7 +56,8 @@ $ sql_efficiency_check -maxStmt 1 -showFull -showPlans
 
 ## Metric Server
 
-To start it in Prometheus metric server mode do the following...
+In order to record the efficiency over time, there is option of running in `-metricServer` mode.  This samples the Logical IO and tags all Logical IO as part of an Index Join, Full Scan, or Explicit transaction.  While these can not be always avoided, they are known to be less efficient than LIO that does not involve these operations.  
+
 
 ```bash
 $ sql_efficiency_check -metricServer
@@ -71,8 +72,11 @@ Running Prometheus Metric Server
 2022/02/23 19:00:13 RESET COUNTERs due to AggInterval change
 ```
 
+
 ### Dashboard output
 
-The SQL efficiency Dashboard [json](SQLEfficiencyDashboard-1645677578406.json) can be used to ingest the metrics displayed when running ing `-metricServer` mode.  Below is an example output:
+Once the `-metricServer` is running, Prometheus can sample from the `-http` port.  Finally, this allows Grafana to display the SQL efficiency [Dashboard](SQLEfficiencyDashboard-1645677578406.json) counters along with application and other CockroachDB metrics. Looking at efficiency data over time can be real powerful as it can help identify patterns or changes in the application and help quickly identify potential issues.
+
+Below is an example output:
 
 ![](img/sql_efficiency_dashboard_prometheus.png)
