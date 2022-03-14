@@ -26,7 +26,7 @@ WITH stmt_hr_calc AS (
             END as iJoinStmt
     FROM crdb_internal.statement_statistics
     WHERE 1=1
-      AND app_name not like '$ internal-%'
+      --AND app_name not like '$ internal-%'
 ), stmt_hr_stats AS (
     SELECT
         aggregated_ts,

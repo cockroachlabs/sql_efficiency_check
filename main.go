@@ -110,22 +110,22 @@ func run(ctx context.Context) error {
 			os.Exit(0)
 		}
 
-		// Top Overall Statements
-		topLioHr := topStatements(ctx, res, *MaxStmt)
-		// Exit if mostly idle system
-		if topLioHr < 3600*10 {
-			fmt.Println("Mostly Idle system...Less than 10 LIO/sec in top Hour")
-			//return err
-		}
+		//// Top Overall Statements
+		//topLioHr := topStatements(ctx, res, *MaxStmt)
+		//// Exit if mostly idle system
+		//if topLioHr < 3600*10 {
+		//	fmt.Println("Mostly Idle system...Less than 10 LIO/sec in top Hour")
+		//	//return err
+		//}
 
 		// indexJoin
 		filterByiJoin(ctx, res, *MaxStmt)
 
-		// Full Scan
-		filterByFull(ctx, res, *MaxStmt)
-
 		// Implicit Txn
 		filterByImplicit(ctx, res, *MaxStmt)
+
+		// Full Scan
+		filterByFull(ctx, res, *MaxStmt)
 
 		// Big SQL Statements
 		filterByFatTxn(ctx, res, *MaxStmt)

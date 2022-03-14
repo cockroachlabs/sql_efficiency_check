@@ -26,8 +26,8 @@ WITH stmt_hr_calc AS (
             END as iJoinStmt
     FROM crdb_internal.statement_statistics
     WHERE 1=1
-        AND aggregated_ts > now() - INTERVAL '1hr'
-        AND app_name not like '$ internal-%'
+      AND aggregated_ts > now() - INTERVAL '1hr'
+      AND app_name not like '$ internal-%'
 ), stmt_hr_stats AS (
     SELECT
         aggregated_ts,
@@ -40,9 +40,9 @@ WITH stmt_hr_calc AS (
         implicitTxn,
         execCnt,
         sum(rowsMean*execCnt) OVER (PARTITION BY aggregated_ts) as lioAggTotal,
-        sum(rowsMean*execCnt) OVER (PARTITION BY aggregated_ts, fingerprint_id) as lioPerStmtAgg
+        sum(rowsMean*execCnt) OVER (PARTITION BY aggregated_ts, fingerprint_id) as lioPerStmt
     FROM stmt_hr_calc
-    ORDER BY lioPerStmtAgg DESC
+    ORDER BY lioPerStmt DESC
 ), stmt_hr_pct AS (
     SELECT
         aggregated_ts,
@@ -52,10 +52,10 @@ WITH stmt_hr_calc AS (
         fullScan,
         iJoinStmt,
         implicitTxn,
-        lioPerStmtAgg,
+        lioPerStmt,
         lioAggTotal,
         execCnt,
-        lioPerStmtAgg/lioAggTotal as lioPct
+        lioPerStmt/lioAggTotal as lioPct
     FROM stmt_hr_stats
 )
 SELECT
@@ -66,7 +66,7 @@ SELECT
     fullScan,
     iJoinStmt,
     implicitTxn,
-    (lioPerStmtAgg/execCnt)::int as readsPerExec,
+    (lioPerStmt/execCnt)::int as readsPerExec,
     lioAggTotal,
     lioPct
 FROM stmt_hr_pct
