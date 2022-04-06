@@ -139,10 +139,13 @@ This section outlines steps to install this `sql_efficiency_check` app on Mac.
 
 #### Build Docker image
 ```bash
+git clone git@github.com:cockroachlabs/sql_efficiency_check.git
+cd sql_efficiency_check
+env GOOS=linux GOARCH=amd64 go build ./sql_efficiency_check
 docker build -t sql_efficiency_check -f ./Dockerfile.scratch .
 ```
 
 #### Run Docker image
 ```bash
-docker run  -it sql_efficiency_check /sql_efficiency_check -conn postgresql://root@192.168.0.100:26257/defaultdb?sslmode=disable -lastHr
+docker run  -it sql_efficiency_check /sql_efficiency_check -conn postgresql://root@192.168.0.100:26257/defaultdb?sslmode=disable -maxStmt 2
 ```
