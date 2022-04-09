@@ -7,6 +7,7 @@ WITH stmt_hr_calc AS (
         sampled_plan,
         IF (metadata->'implicitTxn' = 'true', 1, 0) as implicitTxn,
         IF (metadata->'fullScan' = 'true', 1, 0) as fullScan,
+        IF (sampled_plan::STRING like '%index join%', 1, 0) as ijoinStmt,
         CAST(statistics->'statistics'->'numRows'->>'mean' as FLOAT)::INT as numRows,
         CAST(statistics->'statistics'->'rowsRead'->>'mean' as FLOAT)::INT as rowsRead,
         CASE
@@ -14,16 +15,7 @@ WITH stmt_hr_calc AS (
                 THEN CAST(statistics->'statistics'->'numRows'->>'mean' as FLOAT)::INT
             ELSE CAST(statistics->'statistics'->'rowsRead'->>'mean' as FLOAT)::INT
             END as rowsMean,
-        CAST(statistics->'statistics'->'cnt' as INT) as execCnt,
-        CASE
-            WHEN (sampled_plan @> '{"Name": "index join"}') THEN 1
-            WHEN (sampled_plan->'Children'->0->>'Name' = 'index join') THEN 1
-            WHEN (sampled_plan->'Children'->1->>'Name' = 'index join') THEN 1
-            WHEN (sampled_plan->'Children'->2->>'Name' = 'index join') THEN 1
-            WHEN (sampled_plan->'Children'->3->>'Name' = 'index join') THEN 1
-            WHEN (sampled_plan->'Children'->4->>'Name' = 'index join') THEN 1
-            ELSE 0
-            END as iJoinStmt
+        CAST(statistics->'statistics'->'cnt' as INT) as execCnt
     FROM crdb_internal.statement_statistics
     WHERE 1=1
       --AND app_name not like '$ internal-%'
