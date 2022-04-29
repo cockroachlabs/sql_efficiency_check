@@ -16,7 +16,7 @@ WITH stmt_hr_calc AS (
             ELSE CAST(statistics->'statistics'->'rowsRead'->>'mean' as FLOAT)::INT
             END as rowsMean,
         CAST(statistics->'statistics'->'cnt' as INT) as execCnt
-    FROM crdb_internal.statement_statistics
+        FROM crdb_internal.statement_statistics
     WHERE 1=1
 --             aggregated_ts = '2022-02-15 18:00:00+00'
       AND aggregated_ts > now() - INTERVAL '1hr'
