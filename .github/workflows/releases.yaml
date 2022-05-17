@@ -30,7 +30,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v3
         with:
-          images: cockroachlabs/sql_efficiency_check
+          images: cockroachdb/sql_efficiency_check
           labels: |
             org.opencontainers.image.title=SQL Efficiency Check
             org.opencontainers.image.vendor=Cockroach Labs Inc.
