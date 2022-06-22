@@ -11,7 +11,7 @@ permissions:
   contents: read
 on:
   push:
-    branches: [ master ]
+    branches: [ main ]
     tags: [ 'v*' ]
   # PR's will trigger an image build, but the push action is disabled.
   pull_request:
