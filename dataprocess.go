@@ -293,7 +293,7 @@ func filterByImplicit(ctx context.Context, res []Row, desiredLimit int) {
 	return
 }
 
-func filterByFatTxn(ctx context.Context, res []Row, desiredLimit int) {
+func filterByFatTxn(ctx context.Context, res []Row, desiredLimit int) f {
 
 	// Configure Sort or Row Data Structure
 	//

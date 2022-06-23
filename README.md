@@ -116,36 +116,74 @@ Below is an example output:
 
 ![](img/sql_efficiency_dashboard_prometheus.png)
 
-
 ## Install Instructions
-There are several ways to install, compile and deploy this tool.
 
-### Compile the Go binary
-This section outlines steps to install this `sql_efficiency_check` app on Mac.
+There are several ways to install, compile and deploy this tool.  You can certainly, but build your own like shown in the [DIY](DIY_build.md) instructions.  The easiest way is to simply run the published docker image.
 
-1. Download and install [GO](https://go.dev/doc/install)
-2. From the command line in the `sql_efficiency_check` directory, run the go build command (`$ go build`) to compile the code into an executable.
-- You've compiled the application into an executable so you can run it. But to run it currently, your prompt needs either to be in the executable's directory, or to specify the executable's path.
-- Next, you'll install the executable so you can run it without specifying its path.
-3. Run `$ go install` to move the binary to app directory.
-4. Discover the Go install path, where the go command will install the current package.
-- You can discover the install path by running the go list command, as in the following example: `$ go list -f '{{.Target}}'`
-- For example, the command's output might say `/Users/bryankwon/go/bin/sql_efficiency_check`, meaning that binaries are installed to `/Users/bryankwon/go/bin`. You'll need this install directory in the next step.
-5. Add the Go install directory to your system's shell path. That way, you'll be able to run your program's executable without specifying where the executable is.
-- EXAMPLE: `$ export PATH=$PATH:/Users/bryankwon/go/bin`
-6. Run your application by simply typing its name. To make this interesting, open a new command prompt and run the hello executable name in some other directory.
+### Running with Docker
 
-### Dockerfile usage
+This shows you how to run the docker [image](https://hub.docker.com/r/cockroachdb/sql_efficiency_check/tags) deployed to our docker hub.
 
-#### Build Docker image
+#### Running Docker Image in Report Mode
+
+This displays the report style output to standard out.
+
 ```bash
-git clone git@github.com:cockroachlabs/sql_efficiency_check.git
-cd sql_efficiency_check
-env GOOS=linux GOARCH=amd64 go build ./sql_efficiency_check
-docker build -t sql_efficiency_check -f ./Dockerfile.scratch .
+docker run  -it cockroachdb/sql_efficiency_check:main  -conn postgresql://root@192.168.0.100:26257/defaultdb?sslmode=disable -maxStmt 2
 ```
 
-#### Run Docker image
+#### Running Docker Image as metricServer
+
+This runs the image in `-metricServer` mode so data can be scraped by Prometheus or other services.
+
 ```bash
-docker run  -it sql_efficiency_check /sql_efficiency_check -conn postgresql://root@192.168.0.100:26257/defaultdb?sslmode=disable -maxStmt 2
+docker run -p 8181:8181 -it cockroachdb/sql_efficiency_check:main  -conn postgresql://root@192.168.0.100:26257/defaultdb?sslmode=disable -metricServer
+
+CockroachDB CCL v22.1.0 (x86_64-pc-linux-gnu, built 2022/05/23 16:27:47, go1.17.6)
+ClusterID: 34454c6c-0d95-4625-b8b5-1816bde0e223
+
+Running Prometheus Metric Server
+2022/06/23 00:08:42 listening on [::]:8181
+2022/06/23 00:08:42 RESET COUNTERs due to AggInterval change
+```
+
+So the `8181` default port is exposed outside of docker.  Prometheus can then be pointed to this endpoint scrape data like so:
+
+```bash
+curl localhost:8181
+# HELP process_cpu_seconds_total Total user and system CPU time spent in seconds.
+# TYPE process_cpu_seconds_total counter
+process_cpu_seconds_total 0.06
+# HELP process_max_fds Maximum number of open file descriptors.
+# TYPE process_max_fds gauge
+process_max_fds 1.048576e+06
+# HELP process_open_fds Number of open file descriptors.
+# TYPE process_open_fds gauge
+process_open_fds 10
+# HELP process_resident_memory_bytes Resident memory size in bytes.
+# TYPE process_resident_memory_bytes gauge
+process_resident_memory_bytes 1.0375168e+07
+# HELP process_start_time_seconds Start time of the process since unix epoch in seconds.
+# TYPE process_start_time_seconds gauge
+process_start_time_seconds 1.65594292028e+09
+# HELP process_virtual_memory_bytes Virtual memory size in bytes.
+# TYPE process_virtual_memory_bytes gauge
+process_virtual_memory_bytes 7.31369472e+08
+# HELP process_virtual_memory_max_bytes Maximum amount of virtual memory available in bytes.
+# TYPE process_virtual_memory_max_bytes gauge
+process_virtual_memory_max_bytes 1.8446744073709552e+19
+# HELP promhttp_metric_handler_requests_in_flight Current number of scrapes being served.
+# TYPE promhttp_metric_handler_requests_in_flight gauge
+promhttp_metric_handler_requests_in_flight 1
+# HELP promhttp_metric_handler_requests_total Total number of scrapes by HTTP status code.
+# TYPE promhttp_metric_handler_requests_total counter
+promhttp_metric_handler_requests_total{code="200"} 1
+promhttp_metric_handler_requests_total{code="500"} 0
+promhttp_metric_handler_requests_total{code="503"} 0
+# HELP stmt_stats
+# TYPE stmt_stats counter
+stmt_stats{lio="Optimized"} 944
+stmt_stats{lio="explicit"} 0
+stmt_stats{lio="full"} 0
+stmt_stats{lio="ijoin"} 0
 ```

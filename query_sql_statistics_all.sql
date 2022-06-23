@@ -10,6 +10,7 @@ WITH stmt_hr_calc AS (
         IF (sampled_plan::STRING like '%index join%', 1, 0) as ijoinStmt,
         CAST(statistics->'statistics'->'numRows'->>'mean' as FLOAT)::INT as numRows,
         CAST(statistics->'statistics'->'rowsRead'->>'mean' as FLOAT)::INT as rowsRead,
+        CAST(statistics->'execution_statistics'->'contentionTime'->>'mean' as FLOAT) as contentionTime,
         CASE
             WHEN CAST(statistics->'statistics'->'numRows'->>'mean' as FLOAT)::INT > CAST(statistics->'statistics'->'rowsRead'->>'mean' as FLOAT)::INT
                 THEN CAST(statistics->'statistics'->'numRows'->>'mean' as FLOAT)::INT
