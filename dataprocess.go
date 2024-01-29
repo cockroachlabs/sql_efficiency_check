@@ -178,9 +178,17 @@ func filterByFull(ctx context.Context, res []Row, desiredLimit int) {
 	}
 
 	var resFull []Row
+	lastTs := "bah"
+
 	for i := 0; i < len(res); i++ {
 		if res[i].fullScan == 1 {
-			resFull = append(resFull, res[i])
+			if len(resFull) == 0 {
+				resFull = append(resFull, res[i])
+				lastTs = res[i].aggregatedTs
+			} else if res[i].aggregatedTs != lastTs {
+				resFull = append(resFull, res[i])
+				lastTs = res[i].aggregatedTs
+			}
 		}
 	}
 
@@ -242,9 +250,17 @@ func filterByImplicit(ctx context.Context, res []Row, desiredLimit int) {
 	}
 
 	var resImplicit []Row
+	lastTs := "blah"
+
 	for i := 0; i < len(res); i++ {
-		if res[i].implicitTxn == 0 {
-			resImplicit = append(resImplicit, res[i])
+		if res[i].fullScan == 1 {
+			if len(resImplicit) == 0 {
+				resImplicit = append(resImplicit, res[i])
+				lastTs = res[i].aggregatedTs
+			} else if res[i].aggregatedTs != lastTs {
+				resImplicit = append(resImplicit, res[i])
+				lastTs = res[i].aggregatedTs
+			}
 		}
 	}
 
@@ -293,7 +309,7 @@ func filterByImplicit(ctx context.Context, res []Row, desiredLimit int) {
 	return
 }
 
-func filterByFatTxn(ctx context.Context, res []Row, desiredLimit int) f {
+func filterByFatTxn(ctx context.Context, res []Row, desiredLimit int) {
 
 	// Configure Sort or Row Data Structure
 	//
@@ -305,9 +321,17 @@ func filterByFatTxn(ctx context.Context, res []Row, desiredLimit int) f {
 	//}
 
 	var resFatTxn []Row
+	lastTs := "blah"
+
 	for i := 0; i < len(res); i++ {
-		if res[i].readsPerExec > 1000 {
-			resFatTxn = append(resFatTxn, res[i])
+		if res[i].fullScan == 1 {
+			if len(resFatTxn) == 0 && res[i].readsPerExec > 1000 {
+				resFatTxn = append(resFatTxn, res[i])
+				lastTs = res[i].aggregatedTs
+			} else if res[i].aggregatedTs != lastTs && res[i].readsPerExec > 1000 {
+				resFatTxn = append(resFatTxn, res[i])
+				lastTs = res[i].aggregatedTs
+			}
 		}
 	}
 

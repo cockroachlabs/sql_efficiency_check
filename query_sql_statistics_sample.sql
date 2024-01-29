@@ -4,10 +4,10 @@ WITH stmt_hr_calc AS (
         app_name,
         fingerprint_id,
         metadata->>'query' as queryTxt,
-        sampled_plan,
+        (crdb_internal.decode_plan_gist(statistics->'statistics'->'planGists'->>0)) as sampled_plan,
         IF (metadata->'implicitTxn' = 'false', 1, 0) as explicitTxn,
         IF (metadata->'fullScan' = 'true', 1, 0) as fullScan,
-        IF (sampled_plan::STRING like '%index join%', 1, 0) as ijoinStmt,
+        IF ((crdb_internal.decode_plan_gist(statistics->'statistics'->'planGists'->>0)) like '%index join%', 1, 0) as ijoinStmt,
         CAST(statistics->'statistics'->'numRows'->>'mean' as FLOAT)::INT as numRows,
         CAST(statistics->'statistics'->'rowsRead'->>'mean' as FLOAT)::INT as rowsRead,
         CASE
