@@ -19,6 +19,7 @@ WITH stmt_hr_calc AS (
         CAST(statistics->'statistics'->'cnt' as INT) as execCnt
     FROM crdb_internal.statement_statistics
     WHERE 1=1
+        AND metadata->>'query' not like '%stmt_hr_calc%'
       --AND app_name not like '$ internal-%'
 ), stmt_hr_stats AS (
     SELECT

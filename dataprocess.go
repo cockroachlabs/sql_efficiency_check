@@ -157,7 +157,8 @@ func filterByiJoin(ctx context.Context, res []Row, desiredLimit int) {
 		}
 
 		if *ShowPlans {
-			fmt.Println("", color.WhiteString(PrettyString(resIjoin[i].prettyPlan)))
+			//fmt.Println("", color.WhiteString(PrettyString(resIjoin[i].prettyPlan)))
+			fmt.Println("", color.WhiteString(resIjoin[i].prettyPlan))
 		}
 
 	}
@@ -230,7 +231,8 @@ func filterByFull(ctx context.Context, res []Row, desiredLimit int) {
 		}
 
 		if *ShowPlans {
-			fmt.Println("", color.WhiteString(PrettyString(resFull[i].prettyPlan)))
+			//fmt.Println("", color.WhiteString(PrettyString(resFull[i].prettyPlan)))
+			fmt.Println("", color.WhiteString(resFull[i].prettyPlan))
 		}
 	}
 
@@ -301,7 +303,8 @@ func filterByImplicit(ctx context.Context, res []Row, desiredLimit int) {
 		}
 
 		if *ShowPlans {
-			fmt.Println("", color.WhiteString(PrettyString(resImplicit[i].prettyPlan)))
+			//fmt.Println("", color.WhiteString(PrettyString(resImplicit[i].prettyPlan)))
+			fmt.Println("", color.WhiteString(resImplicit[i].prettyPlan))
 		}
 	}
 
@@ -361,7 +364,8 @@ func filterByFatTxn(ctx context.Context, res []Row, desiredLimit int) {
 		}
 
 		if *ShowPlans {
-			fmt.Println("", color.WhiteString(PrettyString(resFatTxn[i].prettyPlan)))
+			//fmt.Println("", color.WhiteString(PrettyString(resFatTxn[i].prettyPlan)))
+			fmt.Println("", color.WhiteString(resFatTxn[i].prettyPlan))
 		}
 	}
 

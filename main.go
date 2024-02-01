@@ -32,7 +32,7 @@ var (
 		"Using \"now() - INTERVAL '1hr'\" ")
 	MaxStmt = flag.Int(
 		"maxStmt",
-		5,
+		10,
 		"the maximum number of SQL Statements to display for each issue")
 	ShowFull = flag.Bool(
 		"showFull",
@@ -121,8 +121,8 @@ func run(ctx context.Context) error {
 		// indexJoin
 		filterByiJoin(ctx, res, *MaxStmt)
 
-		// Implicit Txn
-		filterByImplicit(ctx, res, *MaxStmt)
+		//// Implicit Txn
+		//filterByImplicit(ctx, res, *MaxStmt)
 
 		// Full Scan
 		filterByFull(ctx, res, *MaxStmt)

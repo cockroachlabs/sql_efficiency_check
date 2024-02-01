@@ -20,6 +20,7 @@ WITH stmt_hr_calc AS (
     WHERE 1=1
       AND aggregated_ts > now() - INTERVAL '1hr'
       AND app_name not like '$ internal-%'
+      AND metadata->>'query' not like '%stmt_hr_calc%'
 ), stmt_hr_stats AS (
     SELECT
         aggregated_ts,

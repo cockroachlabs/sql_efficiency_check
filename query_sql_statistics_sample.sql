@@ -21,6 +21,7 @@ WITH stmt_hr_calc AS (
 --             aggregated_ts = '2022-02-15 18:00:00+00'
       AND aggregated_ts > now() - INTERVAL '1hr'
       AND app_name not like '$ internal-%'
+      AND metadata->>'query' not like '%stmt_hr_calc%'
 ), sql_distinct_cnt as (
     SELECT DISTINCT aggregated_ts,
                     -- app_name,
