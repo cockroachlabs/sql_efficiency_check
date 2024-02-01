@@ -127,8 +127,8 @@ func run(ctx context.Context) error {
 		// Full Scan
 		filterByFull(ctx, res, *MaxStmt)
 
-		// Big SQL Statements
-		filterByFatTxn(ctx, res, *MaxStmt)
+		//// Big SQL Statements
+		//filterByFatTxn(ctx, res, *MaxStmt)
 	}
 	return err
 }
