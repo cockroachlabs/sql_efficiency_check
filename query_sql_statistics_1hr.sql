@@ -20,8 +20,9 @@ WITH stmt_hr_calc AS (
     FROM crdb_internal.statement_statistics
     WHERE 1=1
       AND aggregated_ts > now() - INTERVAL '1hr'
-      AND app_name not like '$ internal-%'
       AND metadata->>'query' not like '%stmt_hr_calc%'
+      AND metadata->>'query' not like '%internal-%'
+      AND metadata->>'query' not like '%FROM system.%'
 ), stmt_hr_stats AS (
     SELECT
         aggregated_ts,
@@ -64,6 +65,5 @@ SELECT
     lioAggTotal,
     lioPct
 FROM stmt_hr_pct
-WHERE 1=1 and
-        app_name not like '%internal-%'
+WHERE 1=1
 ORDER BY lioPct DESC;

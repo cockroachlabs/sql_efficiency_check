@@ -255,7 +255,7 @@ func filterByImplicit(ctx context.Context, res []Row, desiredLimit int) {
 	lastTs := "blah"
 
 	for i := 0; i < len(res); i++ {
-		if res[i].fullScan == 1 {
+		if res[i].implicitTxn == 0 {
 			if len(resImplicit) == 0 {
 				resImplicit = append(resImplicit, res[i])
 				lastTs = res[i].aggregatedTs
