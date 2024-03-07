@@ -122,13 +122,13 @@ func run(ctx context.Context) error {
 		filterByiJoin(ctx, res, *MaxStmt)
 
 		//// Implicit Txn
-		//filterByImplicit(ctx, res, *MaxStmt)
+		filterByImplicit(ctx, res, *MaxStmt)
 
 		// Full Scan
 		filterByFull(ctx, res, *MaxStmt)
 
 		//// Big SQL Statements
-		//filterByFatTxn(ctx, res, *MaxStmt)
+		filterByFatTxn(ctx, res, *MaxStmt)
 	}
 	return err
 }
