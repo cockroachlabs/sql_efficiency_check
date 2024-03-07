@@ -105,10 +105,10 @@ func run(ctx context.Context) error {
 			return errors.Wrap(err, "could not connect")
 		}
 
-		if len(res) < 2 {
-			fmt.Printf("Not enough statements... mostly idle cluster")
-			os.Exit(0)
-		}
+		//if len(res) < 2 {
+		//	fmt.Printf("Not enough statements... mostly idle cluster")
+		//	os.Exit(0)
+		//}
 
 		//// Top Overall Statements
 		//topLioHr := topStatements(ctx, res, *MaxStmt)

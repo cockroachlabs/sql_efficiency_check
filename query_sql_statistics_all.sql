@@ -4,10 +4,11 @@ WITH stmt_hr_calc AS (
         app_name,
         fingerprint_id,
         metadata->>'query' as queryTxt,
-        (crdb_internal.decode_plan_gist(statistics->'statistics'->'planGists'->>0)) as sampled_plan,
-        IF (metadata->'implicitTxn' = 'true', 1, 0) as implicitTxn,
+--         (select string_agg(z,E'\n') from crdb_internal.decode_plan_gist(statistics->'statistics'->'planGists'->>0) as z) as sampled_plan,
+    'SELECT ZZZ' as sampled_plan,
+    IF (metadata->'implicitTxn' = 'true', 1, 0) as implicitTxn,
         IF (metadata->'fullScan' = 'true', 1, 0) as fullScan,
-        IF (crdb_internal.decode_plan_gist(statistics->'statistics'->'planGists'->>0) like '%index join%', 1, 0) as ijoinStmt,
+        IF ((select string_agg(z,E'\n') from crdb_internal.decode_plan_gist(statistics->'statistics'->'planGists'->>0) as z) like '%index join%', 1, 0) as ijoinStmt,
         CAST(statistics->'statistics'->'numRows'->>'mean' as FLOAT)::INT as numRows,
         CAST(statistics->'statistics'->'rowsRead'->>'mean' as FLOAT)::INT as rowsRead,
         CAST(statistics->'execution_statistics'->'contentionTime'->>'mean' as FLOAT) as contentionTime,
@@ -20,6 +21,7 @@ WITH stmt_hr_calc AS (
     FROM crdb_internal.statement_statistics
     WHERE 1=1
         AND metadata->>'query' not like '%stmt_hr_calc%'
+        AND metadata->>'query' not like 'UPSERT%'
       --AND app_name not like '$ internal-%'
 ), stmt_hr_stats AS (
     SELECT
