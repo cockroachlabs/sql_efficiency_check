@@ -4,8 +4,8 @@ WITH stmt_hr_calc AS (
         app_name,
         fingerprint_id,
         metadata->>'query' as queryTxt,
---         (select string_agg(z,E'\n') from crdb_internal.decode_plan_gist(statistics->'statistics'->'planGists'->>0) as z) as sampled_plan,
-    'SELECT ZZZ' as sampled_plan,
+        (select string_agg(z,E'\n') from crdb_internal.decode_plan_gist(statistics->'statistics'->'planGists'->>0) as z) as sampled_plan,
+--     'SELECT ZZZ' as sampled_plan,
     IF (metadata->'implicitTxn' = 'false', 1, 0) as explicitTxn,
         IF (metadata->'fullScan' = 'true', 1, 0) as fullScan,
         IF ((select string_agg(z,E'\n') from crdb_internal.decode_plan_gist(statistics->'statistics'->'planGists'->>0) as z) like '%index join%', 1, 0) as ijoinStmt,
@@ -19,7 +19,6 @@ WITH stmt_hr_calc AS (
         CAST(statistics->'statistics'->'cnt' as INT) as execCnt
         FROM crdb_internal.statement_statistics
     WHERE 1=1
---             aggregated_ts = '2022-02-15 18:00:00+00'
       AND aggregated_ts > now() - INTERVAL '1hr'
       AND app_name not like '$ internal-%'
       AND metadata->>'query' not like '%stmt_hr_calc%'
